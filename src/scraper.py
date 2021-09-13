@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import re
+import numpy as np
 
 # Set up credentials for web scraping
 headers = {'User-Agent': 
@@ -15,10 +17,20 @@ weeks = [i for i in range(1, 20)]
 def scrape():
     pass
 
+def standardize_team_name(name):
+    name = re.sub(r'\([^)]*\)', '', name)
+    name = name.replace(' ', '-').lower()
+    name = re.sub(r'(-)+', r'\1', name)
+    if name[-1] == "-":
+        name = name[: len(name)-1]
+    return name
+
 # Standardizes a given name
 # e.g. "Andrew Carter" -> "andrew-carter"
 def standardize_name(name):
-    return name.replace(' ', '-').lower()
+    name = re.sub(r'[^A-Za-z0-9 ]+', '', name)
+    name = name.replace(' ', '-').lower()
+    return name
 
 # Extracts tangible data for pollster names from HTML source code
 def extract_name_data(df):
@@ -66,6 +78,38 @@ def extract_team_data(pollster_df, team_df):
 
     return team_df
 
+def extract_ballot_data(ballot_df):
+    url = 'https://collegepolltracker.com/basketball/pollster/'
+    row = 0
+    for year in years:
+        for i in range(0, 67):
+            pollster_name = str(names_df.at[i, year])
+            if pollster_name != "nan":
+                for week in weeks:
+                    week_var = week
+
+                    if week_var == 1:
+                        week_var = "pre-season"
+                    elif week_var == 19:
+                        week_var = "final-rankings"
+                    else:
+                        week_var = "week-"+str(week)
+
+                    page = requests.get(url + str(names_df.at[i, year])+'/'+str(year)+'/'+str(week_var), headers = headers)
+                    soup = BeautifulSoup(page.content, 'html.parser')
+                    results = soup.find_all("span", {"class": "teamName"})
+                    
+                    ballot_df = ballot_df.append({"season": year, "week": week, "pollster": pollster_name}, ignore_index=True)
+
+                    count = 1
+                    for result in results:
+                        if count <= 25:
+                            ballot_df.loc[row, count] = standardize_team_name(result.text)
+                            count+=1
+                    row+=1
+
+    return ballot_df
+
 
 # Create auxiliary files for all pollster names
 names_df = pd.DataFrame(columns=years)
@@ -76,5 +120,14 @@ names_df.to_csv('names.csv')
 teams_df = pd.DataFrame(columns=years)
 teams_df = extract_team_data(names_df, teams_df)
 teams_df.to_csv('teams.csv')
+
+# Main CSV file for all webscraped ballot data
+ballot_columns = [i for i in range(1, 26)]
+ballot_columns.insert(0, "pollster")
+ballot_columns.insert(0, "week")
+ballot_columns.insert(0, "season")
+ballots_df = pd.DataFrame(columns=ballot_columns)
+ballots_df = extract_ballot_data(ballots_df)
+ballots_df.to_csv('ballots.csv')
 
 
