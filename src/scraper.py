@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import re
 import numpy as np
+from requests.exceptions import ConnectionError
 
 # Set up credentials for web scraping
 headers = {'User-Agent': 
@@ -52,29 +53,35 @@ def extract_name_data(df):
 def extract_team_data(pollster_df, team_df):
     url = 'https://collegepolltracker.com/basketball/pollster/'
     for year in years: # represents a single year
-        teams = []
+        teams = set()
         for i in range(0, 67):
             for week in weeks:
-                i=0
                 week_var = week
 
-                if week_var == 0:
+                if week_var == 1:
                     week_var = "pre-season"
                 elif week_var == 19:
                     week_var = "final-rankings"
+                else:
+                    week_var = "week-"+str(week)
 
-                page = requests.get(url + str(names_df.at[i, year])+'/'+str(year)+'/'+str(week_var), headers = headers)
-                soup = BeautifulSoup(page.content, 'html.parser')
-                results = soup.find_all("span", {"class": "teamName"})
+                try:
+                    page = requests.get(url + str(names_df.at[i, year])+'/'+str(year)+'/'+str(week_var), headers = headers)
+                    soup = BeautifulSoup(page.content, 'html.parser')
+                    results = soup.find_all("span", {"class": "teamName"})
 
-                for result in results:
-                    if result.text not in teams:
-                        if year is years[0]:
-                            team_df = team_df.append({year: standardize_name(result.text)}, ignore_index=True)
-                        else: 
-                            team_df.loc[i, year] = standardize_name(result.text)
-                        i+=1
-                        teams.append(result.text)
+                    for result in results:
+                        teams.add(standardize_team_name(result.text))
+                except ConnectionError as e: 
+                    pass
+
+        teams = list(teams)
+        for i in range(len(teams)):
+            if len(teams[i]) <= 2:
+                i+=1
+            team_df.loc[i, year] = teams[i]
+
+
 
     return team_df
 
