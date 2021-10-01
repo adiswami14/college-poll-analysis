@@ -1,6 +1,19 @@
 import pandas as pd
 import re
 import numpy as np
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+
+
+headers = {'User-Agent': 
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
+}
+
+weeks = [i for i in range(1, 20)]
+
+def strip_date(s):
+    return s[s.find("(")+1:s.find(")")]
 
 def set_df(df, filename):
     df = pd.read_excel(filename)
@@ -43,9 +56,55 @@ def check_win(df):
                 df.loc[i+1, 'Result'] = 'T'
 
     return df
+
+def get_week_dict(year):
+    url = 'https://collegepolltracker.com/basketball/'
+    week_dict = {}
+    for week in weeks:
+        week_var = week
+
+        if week_var == 1:
+            week_var = "pre-season"
+        elif week_var == 19:
+            week_var = "final-rankings"
+        else:
+            week_var = "week-"+str(week)
+
+        try:
+            page = requests.get(url +str(year)+'/'+str(week_var), headers = headers, verify = False)
+            soup = BeautifulSoup(page.content, 'html.parser')
+            results = soup.find_all("span", {"class": "weekBar"})
+
+            for result in results:
+                date = datetime.strptime(strip_date(result.text), '%b %d, %Y')
+                d_range = None
+                if week == 1:
+                    d_range = 14
+                else:
+                     d_range = 7
+                date_list = [date + timedelta(days=x) for x in range(d_range)]
+                week_dict[week] = [d.strftime("%m/%d") for d in date_list]
+        except ConnectionError as e: 
+            pass
+
+    return week_dict
+
+def get_week(date, week_dict):
+    date = str(date)
+    if len(date) == 3:
+        date = "0"+date
+    date_str = date[:len(date)//2]+"/"+date[len(date)//2:len(date)]
+    for week in weeks:
+        if date_str in week_dict[week]:
+            return week
+    
+    if date[:len(date)//2] == "11":
+        return 1
+    else:
+        return 19
         
         
-def create_csv_file(input_path: str, output_path : str):
+def create_csv_file(input_path: str, output_path : str, year: str):
     df = pd.DataFrame()
     df = set_df(df, input_path)
 
@@ -53,12 +112,17 @@ def create_csv_file(input_path: str, output_path : str):
     df['Probability'] = df['ML'].apply(find_winning_probability)
     df['Team'] = df['Team'].apply(standardize_camelCase_name)
 
+    week_dict = get_week_dict(year)
+
+    df['Week'] = df.apply(lambda x: get_week(x['Date'], week_dict), axis=1)
+
+
     df = check_win(df)
     df.to_csv(output_path)
 
-create_csv_file('spreadsheets/2014-15.xlsx', 'seasons/2014-15.csv')
-create_csv_file('spreadsheets/2015-16.xlsx', 'seasons/2015-16.csv')
-create_csv_file('spreadsheets/2016-17.xlsx', 'seasons/2016-17.csv')
-create_csv_file('spreadsheets/2017-18.xlsx', 'seasons/2017-18.csv')
-create_csv_file('spreadsheets/2018-19.xlsx', 'seasons/2018-19.csv')
-create_csv_file('spreadsheets/2019-20.xlsx', 'seasons/2019-20.csv')
+create_csv_file('spreadsheets/2014-15.xlsx', 'seasons/2014-15.csv', 2014)
+create_csv_file('spreadsheets/2015-16.xlsx', 'seasons/2015-16.csv', 2015)
+create_csv_file('spreadsheets/2016-17.xlsx', 'seasons/2016-17.csv', 2016)
+create_csv_file('spreadsheets/2017-18.xlsx', 'seasons/2017-18.csv', 2017)
+create_csv_file('spreadsheets/2018-19.xlsx', 'seasons/2018-19.csv', 2018)
+create_csv_file('spreadsheets/2019-20.xlsx', 'seasons/2019-20.csv', 2019)
