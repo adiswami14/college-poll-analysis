@@ -11,6 +11,21 @@ headers = {'User-Agent':
 }
 
 weeks = [i for i in range(1, 20)]
+names_df = pd.read_csv('names.csv')
+ballots_df = pd.read_csv('ballots.csv')
+
+def get_ranking(team, week, year):
+    ranking_dict = {}
+    for pollster in names_df[str(year)]:
+        if pollster != "nan":
+            ext_df = ballots_df.loc[(ballots_df["season"] == year) & (ballots_df["pollster"] == pollster) & (ballots_df["week"] == week)]
+            for i in weeks:
+                index_list = ext_df.index[ext_df[str(i)] == team].tolist()
+                if len(index_list) > 0:
+                    ranking_dict[pollster] = i
+                    break
+
+    return ranking_dict
 
 def strip_date(s):
     return s[s.find("(")+1:s.find(")")]
@@ -120,9 +135,13 @@ def create_csv_file(input_path: str, output_path : str, year: str):
     df = check_win(df)
     df.to_csv(output_path)
 
+
+new_df = pd.DataFrame([get_ranking("wisconsin", 2, 2014)])
+
 create_csv_file('spreadsheets/2014-15.xlsx', 'seasons/2014-15.csv', 2014)
 create_csv_file('spreadsheets/2015-16.xlsx', 'seasons/2015-16.csv', 2015)
 create_csv_file('spreadsheets/2016-17.xlsx', 'seasons/2016-17.csv', 2016)
 create_csv_file('spreadsheets/2017-18.xlsx', 'seasons/2017-18.csv', 2017)
 create_csv_file('spreadsheets/2018-19.xlsx', 'seasons/2018-19.csv', 2018)
 create_csv_file('spreadsheets/2019-20.xlsx', 'seasons/2019-20.csv', 2019)
+
