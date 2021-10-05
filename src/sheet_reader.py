@@ -13,19 +13,19 @@ headers = {'User-Agent':
 weeks = [i for i in range(1, 20)]
 names_df = pd.read_csv('names.csv')
 ballots_df = pd.read_csv('ballots.csv')
+teams_df = pd.read_csv('teams.csv')
 
 def get_ranking(team, week, year):
     ranking_dict = {}
     for pollster in names_df[str(year)]:
         if pollster != "nan":
             ext_df = ballots_df.loc[(ballots_df["season"] == year) & (ballots_df["pollster"] == pollster) & (ballots_df["week"] == week)]
-            for i in weeks:
-                index_list = ext_df.index[ext_df[str(i)] == team].tolist()
-                if len(index_list) > 0:
-                    ranking_dict[pollster] = i
-                    break
+            if team in ext_df.values:
+                for (column_name, column_data) in ext_df.iteritems():
+                    if column_data.values[0] == team:
+                        ranking_dict[pollster] = int(column_name)
 
-    return ranking_dict
+    return pd.DataFrame([ranking_dict])
 
 def strip_date(s):
     return s[s.find("(")+1:s.find(")")]
@@ -86,7 +86,7 @@ def get_week_dict(year):
             week_var = "week-"+str(week)
 
         try:
-            page = requests.get(url +str(year)+'/'+str(week_var), headers = headers, verify = False)
+            page = requests.get(url +str(year)+'/'+str(week_var), headers = headers)
             soup = BeautifulSoup(page.content, 'html.parser')
             results = soup.find_all("span", {"class": "weekBar"})
 
@@ -131,12 +131,24 @@ def create_csv_file(input_path: str, output_path : str, year: str):
 
     df['Week'] = df.apply(lambda x: get_week(x['Date'], week_dict), axis=1)
 
-
     df = check_win(df)
+
+    copy_df = pd.DataFrame(df)
+    for index, row in df.iterrows():
+        if row['Team'] not in list(teams_df[str(year)].to_numpy()):
+            copy_df = copy_df.drop(index)
+
+    df = pd.DataFrame(copy_df)
+    df = df.reset_index()
+
+    ranking_df = pd.DataFrame()
+    for index, row in df.iterrows():
+        ranking_df = ranking_df.append(get_ranking(row['Team'], row['Week'], year), ignore_index=True)
+
+
+    df = pd.concat([df, ranking_df], axis =1)
+
     df.to_csv(output_path)
-
-
-new_df = pd.DataFrame([get_ranking("wisconsin", 2, 2014)])
 
 create_csv_file('spreadsheets/2014-15.xlsx', 'seasons/2014-15.csv', 2014)
 create_csv_file('spreadsheets/2015-16.xlsx', 'seasons/2015-16.csv', 2015)
