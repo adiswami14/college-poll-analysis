@@ -4,6 +4,7 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+from borda_count import BordaCount
 
 
 headers = {'User-Agent': 
@@ -14,6 +15,7 @@ weeks = [i for i in range(1, 20)]
 names_df = pd.read_csv('names.csv')
 ballots_df = pd.read_csv('ballots.csv')
 teams_df = pd.read_csv('teams.csv')
+weights = [25-i for i in range(25)]
 
 def get_ranking(team, week, year):
     ranking_dict = {}
@@ -145,8 +147,17 @@ def create_csv_file(input_path: str, output_path : str, year: str):
     for index, row in df.iterrows():
         ranking_df = ranking_df.append(get_ranking(row['Team'], row['Week'], year), ignore_index=True)
 
+    bc_list = []
+    for index, row in ranking_df.iterrows():
+        list_row = row.tolist()
+        list_row = [0 if np.isnan(val) else int(val) for val in list_row]
+        bc = BordaCount(weights, list_row)
+        bc_list.append(bc.get_aggregate_value())
 
+    df["Aggregate"] = bc_list
     df = pd.concat([df, ranking_df], axis =1)
+    df = df[df.Aggregate != 0]
+    df = df.sort_values(by=['Week', 'Aggregate'])
 
     df.to_csv(output_path)
 
