@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from borda_count import BordaCount
 
-def output_to_file(week, season, weights):
+def weighted_borda(week, season, weights):
     next_year = (season-2000)+1
     df = pd.read_csv('seasons/'+str(season)+'-'+str(next_year)+'.csv')
     df = df.loc[df["Week"] == week]
@@ -10,6 +10,12 @@ def output_to_file(week, season, weights):
     df = df.drop_duplicates(['Team'])
     df = df.head(25)
 
+    range_len = 0
+    if (df.shape)[0] > 25:
+        range_len = 25
+    else:
+        range_len = df.shape[0]
+    
     bc_list = []
     diff_list = []
 
@@ -20,13 +26,16 @@ def output_to_file(week, season, weights):
         bc = BordaCount(weights, list_row)
         bc_list.append(bc.get_aggregate_value())
     
-    df['Standard Rank'] = [i for i in range(1, 26)]
+    df['Standard Rank'] = [i for i in range(1, range_len+1)]
 
     copy_list = list(bc_list)
     copy_list.sort()
     copy_list.reverse()
 
-    df["Adjusted Rank"] = [copy_list.index(i)+1 for i in bc_list]
+    adj_list = [0 for i in range(range_len)]
+    if len(bc_list) > 0:
+        adj_list = [copy_list.index(i)+1 for i in bc_list]
+    df["Adjusted Rank"] = adj_list
     df = df.reset_index()
     df = df[['Team', 'Week' ,'Standard Rank', 'Adjusted Rank']]
 
@@ -34,8 +43,26 @@ def output_to_file(week, season, weights):
         diff_list.append(int(row['Standard Rank']) - int(row['Adjusted Rank']))
 
     df['Ranking Change'] = diff_list
+    return diff_list
+    # df.to_csv('comparator.csv')
 
-    df.to_csv('comparator.csv')
+def loop_over_borda(output_path: str, weights):
+    df = pd.DataFrame()
+    df["Weights"] = weights
+    for season in range(2014, 2020):
+        for week in range(1, 20):
+            print(str(season)+"\t"+str(week))
+            borda_list = weighted_borda(week, season, weights)
+            for i in range(len(borda_list), df.shape[0]):
+                borda_list.append("N/A")
+            df[str(season)+" "+str(week)] = borda_list
+    df.to_csv(output_path)
 
 
-output_to_file(17, 2018, [45 for i in range(25)])
+loop_over_borda('reverse.csv', [i for i in range(25)])
+loop_over_borda('dowdall.csv', [1/i for i in range(1, 26)])
+
+formula_one_list = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+for i in range(15):
+    formula_one_list.append(0)
+loop_over_borda('formula.csv', formula_one_list)
