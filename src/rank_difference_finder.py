@@ -4,7 +4,7 @@ from borda_count import BordaCount
 
 def weighted_borda(week, season, weights):
     next_year = (season-2000)+1
-    df = pd.read_csv('seasons/'+str(season)+'-'+str(next_year)+'.csv')
+    df = pd.read_csv('data/game-results/'+str(season)+'-'+str(next_year)+'.csv')
     df = df.loc[df["Week"] == week]
     df = df.iloc[::-1]
     df = df.drop_duplicates(['Team'])
@@ -53,16 +53,20 @@ def loop_over_borda(output_path: str, weights):
         for week in range(1, 20):
             print(str(season)+"\t"+str(week))
             borda_list = weighted_borda(week, season, weights)
-            for i in range(len(borda_list), df.shape[0]):
-                borda_list.append("N/A")
+            # for i in range(len(borda_list), df.shape[0]):
+            #     borda_list.append("N/A")
             df[str(season)+" "+str(week)] = borda_list
     df.to_csv(output_path)
 
 
-loop_over_borda('reverse.csv', [i for i in range(25)])
-loop_over_borda('dowdall.csv', [1/i for i in range(1, 26)])
+# loop_over_borda('reverse.csv', [i for i in range(25)])
+# loop_over_borda('dowdall.csv', [1/i for i in range(1, 26)])
 
-formula_one_list = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
-for i in range(15):
-    formula_one_list.append(0)
-loop_over_borda('formula.csv', formula_one_list)
+# formula_one_list = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+# for i in range(15):
+#     formula_one_list.append(0)
+# loop_over_borda('formula.csv', formula_one_list)
+
+# for n in range(1,11):
+#     l = [n - i if i < n else 0 for i in range(25)]
+#     loop_over_borda('top-n/top'+str(n)+'.csv', l)

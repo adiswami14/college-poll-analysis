@@ -121,12 +121,12 @@ def extract_ballot_data(ballot_df):
 # Create auxiliary files for all pollster names
 names_df = pd.DataFrame(columns=years)
 names_df = extract_name_data(names_df)
-names_df.to_csv('names.csv')
+names_df.to_csv('data/processed-data/names.csv')
 
 # Create auxiliary files for all teams ballotted at least once
 teams_df = pd.DataFrame(columns=years)
 teams_df = extract_team_data(names_df, teams_df)
-teams_df.to_csv('teams.csv')
+teams_df.to_csv('data/processed-data/teams.csv')
 
 # Main CSV file for all webscraped ballot data
 ballot_columns = [i for i in range(1, 26)]
@@ -135,6 +135,6 @@ ballot_columns.insert(0, "week")
 ballot_columns.insert(0, "season")
 ballots_df = pd.DataFrame(columns=ballot_columns)
 ballots_df = extract_ballot_data(ballots_df)
-ballots_df.to_csv('ballots.csv')
+ballots_df.to_csv('data/processed-data/ballots.csv')
 
 

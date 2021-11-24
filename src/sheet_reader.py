@@ -12,9 +12,9 @@ headers = {'User-Agent':
 }
 
 weeks = [i for i in range(1, 20)]
-names_df = pd.read_csv('names.csv')
-ballots_df = pd.read_csv('ballots.csv')
-teams_df = pd.read_csv('teams.csv')
+names_df = pd.read_csv('data/processed-data/names.csv')
+ballots_df = pd.read_csv('data/processed-data/ballots.csv')
+teams_df = pd.read_csv('data/processed-data/teams.csv')
 weights = [25-i for i in range(25)]
 
 def get_ranking(team, week, year):
@@ -161,10 +161,10 @@ def create_csv_file(input_path: str, output_path : str, year: str):
 
     df.to_csv(output_path)
 
-create_csv_file('spreadsheets/2014-15.xlsx', 'seasons/2014-15.csv', 2014)
-create_csv_file('spreadsheets/2015-16.xlsx', 'seasons/2015-16.csv', 2015)
-create_csv_file('spreadsheets/2016-17.xlsx', 'seasons/2016-17.csv', 2016)
-create_csv_file('spreadsheets/2017-18.xlsx', 'seasons/2017-18.csv', 2017)
-create_csv_file('spreadsheets/2018-19.xlsx', 'seasons/2018-19.csv', 2018)
-create_csv_file('spreadsheets/2019-20.xlsx', 'seasons/2019-20.csv', 2019)
+create_csv_file('data/raw-data/2014-15.xlsx', 'data/game-results/2014-15.csv', 2014)
+create_csv_file('data/raw-data/2015-16.xlsx', 'data/game-results/2015-16.csv', 2015)
+create_csv_file('data/raw-data/2016-17.xlsx', 'data/game-results/2016-17.csv', 2016)
+create_csv_file('data/raw-data/2017-18.xlsx', 'data/game-results/2017-18.csv', 2017)
+create_csv_file('data/raw-data/2018-19.xlsx', 'data/game-results/2018-19.csv', 2018)
+create_csv_file('data/raw-data/2019-20.xlsx', 'data/game-results/2019-20.csv', 2019)
 
